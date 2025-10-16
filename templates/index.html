@@ -2,19 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Analizador de TikTok</title>
+    <title>Subir JSON</title>
 </head>
 <body>
-    <h1>Sube tu archivo JSON de TikTok</h1>
-
-    <form action="/upload" method="POST" enctype="multipart/form-data">
+    <h1>Subir tu JSON de TikTok</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
         <input type="file" name="file" accept=".json" required>
-        <button type="submit">Analizar</button>
+        <button type="submit">Subir JSON</button>
     </form>
-
-    {% if result %}
-        <h2>Resultado del análisis:</h2>
-        <pre>{{ result }}</pre>
-    {% endif %}
 </body>
 </html>
