@@ -2,27 +2,548 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Analizador de TikTok</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Data Analyzer 🎵</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            animation: bounce 1s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-area.dragover {
+            background: #e8eaf6;
+            border-color: #5e35b1;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            font-size: 1.2em;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .option-card.selected {
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .option-card input[type="checkbox"] {
+            display: none;
+        }
+
+        .option-card label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+
+        .option-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.5);
+        }
+
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 40px;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .result-title {
+            font-weight: bold;
+            color: #d63031;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-title::before {
+            content: '🎯';
+            margin-right: 10px;
+            font-size: 1.5em;
+        }
+
+        .result-link {
+            color: #0984e3;
+            text-decoration: none;
+            word-break: break-all;
+            transition: color 0.3s ease;
+        }
+
+        .result-link:hover {
+            color: #74b9ff;
+            text-decoration: underline;
+        }
+
+        .error {
+            background: #ff7675;
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+    </style>
 </head>
 <body>
-    <h1>📊 Analizador de TikTok</h1>
+    <div class="container">
+        <h1>🎵 TikTok Data Analyzer</h1>
+        <p class="subtitle">Descubre insights ocultos de tu actividad en TikTok</p>
 
-    <form action="/" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".json" required>
-        <button type="submit">🔍 Analizar JSON</button>
-    </form>
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <label for="fileInput" class="file-label">
+                    Arrastra tu archivo JSON aquí<br>
+                    o haz clic para seleccionar
+                </label>
+                <input type="file" name="file" id="fileInput" accept=".json">
+                <div class="file-name" id="fileName"></div>
+            </div>
 
-    {% if error %}
-        <p style="color:red">{{ error }}</p>
-    {% endif %}
+            <div class="options-grid">
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="first_like" id="first_like" checked>
+                    <label for="first_like">
+                        <span class="option-icon">❤️</span>
+                        <span>Primer Like</span>
+                    </label>
+                </div>
 
-    {% if results %}
-        <h2>📋 Resultados:</h2>
-        <p>🎵 <strong>Primera y última canción favorita:</strong> {{ results.primera_song }} - {{ results.ultima_song }}</p>
-        <p>👥 <strong>Primer y último seguidor:</strong> {{ results.primer_seguidor }} - {{ results.ultimo_seguidor }}</p>
-        <p>❤️ <strong>Primer y último like:</strong> {{ results.primer_like }} - {{ results.ultimo_like }}</p>
-        <p>🎬 <strong>Primer y último video favorito:</strong> {{ results.primer_favvideo }} - {{ results.ultimo_favvideo }}</p>
-    {% endif %}
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="last_like" id="last_like" checked>
+                    <label for="last_like">
+                        <span class="option-icon">💖</span>
+                        <span>Último Like</span>
+                    </label>
+                </div>
 
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="first_song" id="first_song" checked>
+                    <label for="first_song">
+                        <span class="option-icon">🎵</span>
+                        <span>Primera Canción</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="last_song" id="last_song" checked>
+                    <label for="last_song">
+                        <span class="option-icon">🎶</span>
+                        <span>Última Canción</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="first_follower" id="first_follower" checked>
+                    <label for="first_follower">
+                        <span class="option-icon">👤</span>
+                        <span>Primer Seguidor</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="last_follower" id="last_follower" checked>
+                    <label for="last_follower">
+                        <span class="option-icon">👥</span>
+                        <span>Último Seguidor</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="first_fav" id="first_fav" checked>
+                    <label for="first_fav">
+                        <span class="option-icon">⭐</span>
+                        <span>Primer Favorito</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="last_fav" id="last_fav" checked>
+                    <label for="last_fav">
+                        <span class="option-icon">🌟</span>
+                        <span>Último Favorito</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="random_like" id="random_like">
+                    <label for="random_like">
+                        <span class="option-icon">🎲</span>
+                        <span>Video Random</span>
+                    </label>
+                </div>
+
+                <div class="option-card" onclick="toggleOption(this)">
+                    <input type="checkbox" name="random_song" id="random_song">
+                    <label for="random_song">
+                        <span class="option-icon">🎧</span>
+                        <span>Canción Random</span>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="analyze-btn" id="analyzeBtn" disabled>
+                🚀 Analizar Datos
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analizando tu actividad de TikTok...</p>
+            </div>
+        </form>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if results %}
+        <div class="results">
+            {% if results.primera_song %}
+            <div class="result-card">
+                <div class="result-title">Primera Canción Favorita</div>
+                <a href="{{ results.primera_song }}" target="_blank" class="result-link">{{ results.primera_song }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.ultima_song %}
+            <div class="result-card">
+                <div class="result-title">Última Canción Favorita</div>
+                <a href="{{ results.ultima_song }}" target="_blank" class="result-link">{{ results.ultima_song }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.primer_seguidor %}
+            <div class="result-card">
+                <div class="result-title">Primer Seguidor</div>
+                <p>{{ results.primer_seguidor }}</p>
+            </div>
+            {% endif %}
+
+            {% if results.ultimo_seguidor %}
+            <div class="result-card">
+                <div class="result-title">Último Seguidor</div>
+                <p>{{ results.ultimo_seguidor }}</p>
+            </div>
+            {% endif %}
+
+            {% if results.primer_like %}
+            <div class="result-card">
+                <div class="result-title">Primer Video con Like</div>
+                <a href="{{ results.primer_like }}" target="_blank" class="result-link">{{ results.primer_like }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.ultimo_like %}
+            <div class="result-card">
+                <div class="result-title">Último Video con Like</div>
+                <a href="{{ results.ultimo_like }}" target="_blank" class="result-link">{{ results.ultimo_like }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.primer_favvideo %}
+            <div class="result-card">
+                <div class="result-title">Primer Video Favorito</div>
+                <a href="{{ results.primer_favvideo }}" target="_blank" class="result-link">{{ results.primer_favvideo }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.ultimo_favvideo %}
+            <div class="result-card">
+                <div class="result-title">Último Video Favorito</div>
+                <a href="{{ results.ultimo_favvideo }}" target="_blank" class="result-link">{{ results.ultimo_favvideo }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.random_like %}
+            <div class="result-card">
+                <div class="result-title">Video Aleatorio de tus Likes</div>
+                <a href="{{ results.random_like }}" target="_blank" class="result-link">{{ results.random_like }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.random_song %}
+            <div class="result-card">
+                <div class="result-title">Canción Aleatoria de tus Favoritas</div>
+                <a href="{{ results.random_song }}" target="_blank" class="result-link">{{ results.random_song }}</a>
+            </div>
+            {% endif %}
+
+            {% if results.gcs_path %}
+            <div class="result-card">
+                <div class="result-title">Archivo guardado en Cloud</div>
+                <p>✅ {{ results.gcs_path }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const loading = document.getElementById('loading');
+
+        // Click para seleccionar archivo
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Prevenir comportamiento por defecto del drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight al arrastrar
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            });
+        });
+
+        // Handle drop
+        uploadArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            handleFiles(files);
+        });
+
+        // Handle file selection
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                fileName.textContent = `✅ ${files[0].name}`;
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        // Toggle option cards
+        function toggleOption(card) {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            card.classList.toggle('selected', checkbox.checked);
+        }
+
+        // Initialize selected cards
+        document.querySelectorAll('.option-card input:checked').forEach(checkbox => {
+            checkbox.closest('.option-card').classList.add('selected');
+        });
+
+        // Show loading on submit
+        uploadForm.addEventListener('submit', () => {
+            loading.classList.add('active');
+            analyzeBtn.disabled = true;
+        });
+    </script>
 </body>
 </html>

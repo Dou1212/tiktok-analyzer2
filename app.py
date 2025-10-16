@@ -2,6 +2,7 @@ from flask import Flask, request, render_template
 import json
 import uuid
 import os
+import random
 from google.cloud import storage
 from datetime import datetime
 
@@ -35,7 +36,7 @@ def index():
         else:
             file = request.files["file"]
             if file.filename == "" or not file.filename.endswith(".json"):
-                error = "❌ Archivo inválido"
+                error = "❌ Archivo inválido. Debe ser un archivo JSON"
             else:
                 # Guardar temporalmente
                 tmp_folder = "/tmp"
@@ -53,22 +54,105 @@ def index():
                     gcs_filename = f"uploads/{timestamp}_{filename}"
                     upload_to_gcs(file_path, gcs_filename)
 
-                    # Analizar datos
-                    results = {
-                        "primera_song": data['Activity']['Favorite Sounds']['FavoriteSoundList'][-1]['Link'],
-                        "ultima_song": data['Activity']['Favorite Sounds']['FavoriteSoundList'][0]['Link'],
-                        "primer_seguidor": data["Activity"]["Follower List"]["FansList"][-1]["UserName"],
-                        "ultimo_seguidor": data["Activity"]["Follower List"]["FansList"][0]["UserName"],
-                        "primer_like": data["Activity"]["Like List"]["ItemFavoriteList"][-1]["Link"],
-                        "ultimo_like": data["Activity"]["Like List"]["ItemFavoriteList"][0]["Link"],
-                        "primer_favvideo": data["Activity"]["Favorite Videos"]["FavoriteVideoList"][-1]["Link"],
-                        "ultimo_favvideo": data["Activity"]["Favorite Videos"]["FavoriteVideoList"][0]["Link"],
-                        "gcs_path": gcs_filename
+                    # Obtener opciones seleccionadas
+                    options = {
+                        'first_like': request.form.get('first_like') == 'on',
+                        'last_like': request.form.get('last_like') == 'on',
+                        'first_song': request.form.get('first_song') == 'on',
+                        'last_song': request.form.get('last_song') == 'on',
+                        'first_follower': request.form.get('first_follower') == 'on',
+                        'last_follower': request.form.get('last_follower') == 'on',
+                        'first_fav': request.form.get('first_fav') == 'on',
+                        'last_fav': request.form.get('last_fav') == 'on',
+                        'random_like': request.form.get('random_like') == 'on',
+                        'random_song': request.form.get('random_song') == 'on',
                     }
+
+                    # Analizar datos según opciones
+                    results = {}
+
+                    # Primera canción
+                    if options['first_song']:
+                        try:
+                            results['primera_song'] = data['Activity']['Favorite Sounds']['FavoriteSoundList'][-1]['Link']
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Última canción
+                    if options['last_song']:
+                        try:
+                            results['ultima_song'] = data['Activity']['Favorite Sounds']['FavoriteSoundList'][0]['Link']
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Primer seguidor
+                    if options['first_follower']:
+                        try:
+                            results['primer_seguidor'] = data["Activity"]["Follower List"]["FansList"][-1]["UserName"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Último seguidor
+                    if options['last_follower']:
+                        try:
+                            results['ultimo_seguidor'] = data["Activity"]["Follower List"]["FansList"][0]["UserName"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Primer like
+                    if options['first_like']:
+                        try:
+                            results['primer_like'] = data["Activity"]["Like List"]["ItemFavoriteList"][-1]["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Último like
+                    if options['last_like']:
+                        try:
+                            results['ultimo_like'] = data["Activity"]["Like List"]["ItemFavoriteList"][0]["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Primer favorito
+                    if options['first_fav']:
+                        try:
+                            results['primer_favvideo'] = data["Activity"]["Favorite Videos"]["FavoriteVideoList"][-1]["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Último favorito
+                    if options['last_fav']:
+                        try:
+                            results['ultimo_favvideo'] = data["Activity"]["Favorite Videos"]["FavoriteVideoList"][0]["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Video aleatorio de likes
+                    if options['random_like']:
+                        try:
+                            like_list = data["Activity"]["Like List"]["ItemFavoriteList"]
+                            if like_list:
+                                results['random_like'] = random.choice(like_list)["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Canción aleatoria
+                    if options['random_song']:
+                        try:
+                            song_list = data['Activity']['Favorite Sounds']['FavoriteSoundList']
+                            if song_list:
+                                results['random_song'] = random.choice(song_list)["Link"]
+                        except (KeyError, IndexError):
+                            pass
+
+                    # Agregar ruta de GCS
+                    results['gcs_path'] = gcs_filename
                     
                     # Limpiar archivo temporal
                     os.remove(file_path)
                     
+                except json.JSONDecodeError:
+                    error = "❌ Error: El archivo no es un JSON válido"
                 except Exception as e:
                     error = f"❌ Error al procesar el archivo: {str(e)}"
 
