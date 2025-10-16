@@ -24,15 +24,22 @@ def upload_to_gcs(file_path, destination_blob_name):
         print(f"Error al subir a GCS: {e}")
         return False
 
-def get_nested_value(data, *keys):
-    """Obtiene un valor anidado del JSON de forma segura"""
-    try:
-        value = data
-        for key in keys:
-            value = value[key]
-        return value
-    except (KeyError, TypeError, IndexError):
+def safe_get(obj, keys):
+    """Navega por claves anidadas de forma segura"""
+    for k in keys:
+        if not isinstance(obj, dict) or k not in obj:
+            return None
+        obj = obj[k]
+    return obj
+
+def extract_field(item, candidates):
+    """Extrae el primer campo válido de una lista de candidatos"""
+    if not isinstance(item, dict):
         return None
+    for c in candidates:
+        if c in item and item[c]:
+            return item[c]
+    return None
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -77,91 +84,69 @@ def index():
                     }
 
                     results = {}
+                    link_fields = ["Link", "link", "url", "URL"]
+                    username_fields = ["UserName", "username", "user_name"]
 
-                    # Detectar estructura del JSON
-                    # NUEVA ESTRUCTURA (2024-2025)
-                    if 'Ads and data' in data:
-                        # Primera canción (Favorite Sounds)
-                        if options['first_song']:
-                            sounds = get_nested_value(data, 'Activity', 'Favorite Sounds', 'FavoriteSoundList')
-                            if sounds and len(sounds) > 0:
-                                results['primera_song'] = sounds[-1].get('Link', '')
+                    # Primera canción
+                    if options['first_song']:
+                        sounds = safe_get(data, ["Your Activity", "Favorite Sounds", "FavoriteSoundList"])
+                        if sounds and len(sounds) > 0:
+                            results['primera_song'] = extract_field(sounds[-1], link_fields)
 
-                        # Última canción
-                        if options['last_song']:
-                            sounds = get_nested_value(data, 'Activity', 'Favorite Sounds', 'FavoriteSoundList')
-                            if sounds and len(sounds) > 0:
-                                results['ultima_song'] = sounds[0].get('Link', '')
+                    # Última canción
+                    if options['last_song']:
+                        sounds = safe_get(data, ["Your Activity", "Favorite Sounds", "FavoriteSoundList"])
+                        if sounds and len(sounds) > 0:
+                            results['ultima_song'] = extract_field(sounds[0], link_fields)
 
-                        # Primer seguidor
-                        if options['first_follower']:
-                            fans = get_nested_value(data, 'Activity', 'Follower List', 'FansList')
-                            if fans and len(fans) > 0:
-                                results['primer_seguidor'] = fans[-1].get('UserName', '')
+                    # Primer seguidor
+                    if options['first_follower']:
+                        fans = safe_get(data, ["Your Activity", "Follower", "FansList"])
+                        if fans and len(fans) > 0:
+                            results['primer_seguidor'] = extract_field(fans[-1], username_fields)
 
-                        # Último seguidor
-                        if options['last_follower']:
-                            fans = get_nested_value(data, 'Activity', 'Follower List', 'FansList')
-                            if fans and len(fans) > 0:
-                                results['ultimo_seguidor'] = fans[0].get('UserName', '')
+                    # Último seguidor
+                    if options['last_follower']:
+                        fans = safe_get(data, ["Your Activity", "Follower", "FansList"])
+                        if fans and len(fans) > 0:
+                            results['ultimo_seguidor'] = extract_field(fans[0], username_fields)
 
-                        # Primer like
-                        if options['first_like']:
-                            likes = get_nested_value(data, 'Activity', 'Like List', 'ItemFavoriteList')
-                            if likes and len(likes) > 0:
-                                results['primer_like'] = likes[-1].get('Link', '')
+                    # Primer like
+                    if options['first_like']:
+                        likes = safe_get(data, ["Your Activity", "Like List", "ItemFavoriteList"])
+                        if likes and len(likes) > 0:
+                            results['primer_like'] = extract_field(likes[-1], link_fields)
 
-                        # Último like
-                        if options['last_like']:
-                            likes = get_nested_value(data, 'Activity', 'Like List', 'ItemFavoriteList')
-                            if likes and len(likes) > 0:
-                                results['ultimo_like'] = likes[0].get('Link', '')
+                    # Último like
+                    if options['last_like']:
+                        likes = safe_get(data, ["Your Activity", "Like List", "ItemFavoriteList"])
+                        if likes and len(likes) > 0:
+                            results['ultimo_like'] = extract_field(likes[0], link_fields)
 
-                        # Primer favorito
-                        if options['first_fav']:
-                            favs = get_nested_value(data, 'Activity', 'Favorite Videos', 'FavoriteVideoList')
-                            if favs and len(favs) > 0:
-                                results['primer_favvideo'] = favs[-1].get('Link', '')
+                    # Primer favorito
+                    if options['first_fav']:
+                        favs = safe_get(data, ["Your Activity", "Favorite Videos", "FavoriteVideoList"])
+                        if favs and len(favs) > 0:
+                            results['primer_favvideo'] = extract_field(favs[-1], link_fields)
 
-                        # Último favorito
-                        if options['last_fav']:
-                            favs = get_nested_value(data, 'Activity', 'Favorite Videos', 'FavoriteVideoList')
-                            if favs and len(favs) > 0:
-                                results['ultimo_favvideo'] = favs[0].get('Link', '')
+                    # Último favorito
+                    if options['last_fav']:
+                        favs = safe_get(data, ["Your Activity", "Favorite Videos", "FavoriteVideoList"])
+                        if favs and len(favs) > 0:
+                            results['ultimo_favvideo'] = extract_field(favs[0], link_fields)
 
-                        # Video aleatorio de likes
-                        if options['random_like']:
-                            likes = get_nested_value(data, 'Activity', 'Like List', 'ItemFavoriteList')
-                            if likes and len(likes) > 0:
-                                results['random_like'] = random.choice(likes).get('Link', '')
+                    # Video aleatorio de likes
+                    if options['random_like']:
+                        likes = safe_get(data, ["Your Activity", "Like List", "ItemFavoriteList"])
+                        if likes and len(likes) > 0:
+                            results['random_like'] = extract_field(random.choice(likes), link_fields)
 
-                        # Canción aleatoria
-                        if options['random_song']:
-                            sounds = get_nested_value(data, 'Activity', 'Favorite Sounds', 'FavoriteSoundList')
-                            if sounds and len(sounds) > 0:
-                                results['random_song'] = random.choice(sounds).get('Link', '')
+                    # Canción aleatoria
+                    if options['random_song']:
+                        sounds = safe_get(data, ["Your Activity", "Favorite Sounds", "FavoriteSoundList"])
+                        if sounds and len(sounds) > 0:
+                            results['random_song'] = extract_field(random.choice(sounds), link_fields)
 
-                    # ESTRUCTURA ALTERNATIVA (más reciente según GitHub)
-                    elif 'Video' in data or ('Activity' in data and 'Video' in data['Activity']):
-                        # Intentar con Activity > Video > Videos > VideoList
-                        video_list = get_nested_value(data, 'Activity', 'Video', 'Videos', 'VideoList')
-                        if not video_list:
-                            video_list = get_nested_value(data, 'Video', 'Videos', 'VideoList')
-                        
-                        if video_list and len(video_list) > 0:
-                            # Primer video
-                            if options['first_like']:
-                                results['primer_like'] = video_list[-1].get('Link', '')
-                            
-                            # Último video
-                            if options['last_like']:
-                                results['ultimo_like'] = video_list[0].get('Link', '')
-                            
-                            # Video aleatorio
-                            if options['random_like']:
-                                results['random_like'] = random.choice(video_list).get('Link', '')
-
-                    # Si no se encontró ninguna estructura conocida
                     if not results:
                         error = "❌ No se pudo leer el archivo. La estructura del JSON no es compatible. Asegúrate de descargar tus datos de TikTok en formato JSON."
                     
