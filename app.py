@@ -80,7 +80,7 @@ def index():
 
                     # Detectar estructura del JSON
                     # NUEVA ESTRUCTURA (2024-2025)
-                    if 'Activity' in data:
+                    if 'Ads and data' in data:
                         # Primera canción (Favorite Sounds)
                         if options['first_song']:
                             sounds = get_nested_value(data, 'Activity', 'Favorite Sounds', 'FavoriteSoundList')
