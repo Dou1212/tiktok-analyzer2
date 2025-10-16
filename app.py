@@ -1,14 +1,16 @@
-from flask import Flask, request, jsonify
-from google.cloud import storage
+from flask import Flask, request, jsonify, render_template
+import json
+import os
 import uuid
 
 app = Flask(__name__)
 
-# Configura tu bucket
-BUCKET_NAME = "tiktok-json-storage"  # Cambia por el nombre real de tu bucket
-storage_client = storage.Client()
-bucket = storage_client.bucket(BUCKET_NAME)
+# Ruta principal (formulario)
+@app.route("/")
+def index():
+    return render_template("index.html")
 
+# Ruta para subir JSON (solo lo guarda temporalmente)
 @app.route("/upload", methods=["POST"])
 def upload_json():
     if "file" not in request.files:
@@ -18,11 +20,21 @@ def upload_json():
     if file.filename == "" or not file.filename.endswith(".json"):
         return jsonify({"error": "Invalid file type"}), 400
 
-    # Nombre único para evitar sobreescrituras
+    # Carpeta temporal de Cloud Run
+    tmp_folder = "/tmp"
     filename = f"{uuid.uuid4()}.json"
+    file_path = os.path.join(tmp_folder, filename)
 
-    # Subir a GCS
-    blob = bucket.blob(filename)
-    blob.upload_from_file(file, content_type="application/json")
+    # Guarda el JSON temporalmente
+    file.save(file_path)
 
-    return jsonify({"message": "JSON uploaded successfully", "gcs_path": f"gs://{BUCKET_NAME}/{filename}"})
+    # Procesar JSON con tus scripts (ejemplo)
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    primer_like = data["Activity"]["Like List"]["ItemFavoriteList"][-1]["Link"]
+
+    return jsonify({"primer_like": primer_like, "temp_path": file_path})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
